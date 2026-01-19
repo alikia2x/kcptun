@@ -1,0 +1,59 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build Multi-Arch Binaries
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+
+      - name: Install UPX
+        run: brew install upx
+
+      - name: Build and Prepare Binaries
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          LDFLAGS="-X main.VERSION=${VERSION} -s -w"
+          
+          # 1. Build Intel (AMD64)
+          GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o kcptun-darwin-amd64 ./client
+          
+          # 2. Build Apple Silicon (ARM64)
+          GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o kcptun-darwin-arm64 ./client
+          
+          # 3. Create Universal Binary
+          lipo -create -output kcptun-darwin-universal kcptun-darwin-amd64 kcptun-darwin-arm64
+          
+          # 4. Compress with UPX
+          upx kcptun-darwin-amd64 kcptun-darwin-arm64 kcptun-darwin-universal
+          
+          # 5. Generate Checksums for raw binaries
+          shasum -a 256 kcptun-darwin-* > SHA256SUMS
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            kcptun-darwin-amd64
+            kcptun-darwin-arm64
+            kcptun-darwin-universal
+            SHA256SUMS
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
