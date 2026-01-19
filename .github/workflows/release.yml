@@ -39,9 +39,6 @@ jobs:
           # 3. Create Universal Binary
           lipo -create -output kcptun-darwin-universal kcptun-darwin-amd64 kcptun-darwin-arm64
           
-          # 4. Compress with UPX
-          upx kcptun-darwin-amd64 kcptun-darwin-arm64 kcptun-darwin-universal
-          
           # 5. Generate Checksums for raw binaries
           shasum -a 256 kcptun-darwin-* > SHA256SUMS
 
