@@ -31,15 +31,16 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"syscall"
 	"time"
 
 	"golang.org/x/crypto/pbkdf2"
 
+	"github.com/alikia2x/kcptun/std"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	kcp "github.com/xtaci/kcp-go/v5"
-	"github.com/xtaci/kcptun/std"
 	"github.com/xtaci/qpp"
 	"github.com/xtaci/smux"
 )
@@ -56,7 +57,46 @@ const (
 // VERSION is populated via build flags when packaging official binaries.
 var VERSION = "SELFBUILD"
 
+func watchParent() {
+	ppid := os.Getppid()
+	if ppid <= 1 {
+		return
+	}
+
+	kq, err := syscall.Kqueue()
+	if err != nil {
+		log.Printf("failed to create kqueue: %v", err)
+		return
+	}
+	defer syscall.Close(kq)
+
+	event := syscall.Kevent_t{
+		Ident:  uint64(ppid),
+		Filter: syscall.EVFILT_PROC,
+		Flags:  syscall.EV_ADD | syscall.EV_ENABLE | syscall.EV_ONESHOT,
+		Fflags: syscall.NOTE_EXIT,
+	}
+
+	events := make([]syscall.Kevent_t, 1)
+	for {
+		n, err := syscall.Kevent(kq, []syscall.Kevent_t{event}, events, nil)
+		if err != nil {
+			if err == syscall.EINTR {
+				continue
+			}
+			log.Printf("kqueue failed to watch: %v", err)
+			return
+		}
+
+		if n > 0 {
+			log.Printf("Parent process exited. Closing kcptun...", ppid)
+			os.Exit(0)
+		}
+	}
+}
+
 func main() {
+	go watchParent()
 	if VERSION == "SELFBUILD" {
 		// Enable timestamps + file:line to simplify debugging self-built binaries.
 		log.SetFlags(log.LstdFlags | log.Lshortfile)

@@ -29,9 +29,9 @@ import (
 	"net"
 	"sync"
 
+	"github.com/alikia2x/kcptun/std"
 	"github.com/pkg/errors"
 	kcp "github.com/xtaci/kcp-go/v5"
-	"github.com/xtaci/kcptun/std"
 	"github.com/xtaci/tcpraw"
 )
 

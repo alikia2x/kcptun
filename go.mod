@@ -1,4 +1,4 @@
-module github.com/xtaci/kcptun
+module github.com/alikia2x/kcptun
 
 require (
 	github.com/fatih/color v1.18.0

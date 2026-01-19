@@ -35,10 +35,10 @@ import (
 
 	"golang.org/x/crypto/pbkdf2"
 
+	"github.com/alikia2x/kcptun/std"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
 	kcp "github.com/xtaci/kcp-go/v5"
-	"github.com/xtaci/kcptun/std"
 	"github.com/xtaci/qpp"
 	"github.com/xtaci/smux"
 	"github.com/xtaci/tcpraw"
